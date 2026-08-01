@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>AI Shopping Assistant</title>
+  <style>
+    body {
+      font-family: 'Georgia', 'Times New Roman', serif;
+      background: url('assets/background.png') no-repeat center center fixed;
+      background-size: cover;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      color: #5c4a47;
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    .card {
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border: none;
+      padding: 20px;
+      box-shadow: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 540px;
+      width: 100%;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    h2 {
+      margin-bottom: 15px;
+      font-size: 0;
+    }
+
+    h2::after {
+      content: "🌸 Bloom AI – Floral Voice Assistant";
+      font-size: 1.6rem;
+      color: #d48a83;
+      font-weight: bold;
+      text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+    }
+
+    p {
+      color: #7d6360;
+      font-style: italic;
+      margin-top: 0;
+    }
+
+    label {
+      font-size: 16px;
+      margin-bottom: 10px;
+      color: #5c4a47;
+      font-weight: bold;
+    }
+
+    input {
+      padding: 8px 16px;
+      font-size: 14px;
+      margin-left: 8px;
+      border-radius: 20px;
+      border: 1px solid #e8a7a1;
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      outline: none;
+      color: #5c4a47;
+      font-family: inherit;
+    }
+
+    input:focus {
+      border-color: #d48a83;
+      box-shadow: 0 2px 12px rgba(212, 138, 131, 0.2);
+    }
+
+    button {
+      background: linear-gradient(135deg, #e8a7a1 0%, #d48a83 100%);
+      color: #fff;
+      padding: 10px 24px;
+      margin: 10px 8px;
+      border: none;
+      border-radius: 25px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(212, 138, 131, 0.3);
+      transition: all 0.3s ease;
+      font-family: inherit;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(212, 138, 131, 0.4);
+    }
+
+    button:disabled {
+      background: #dfc5c2;
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    #status {
+      margin-top: 15px;
+      font-weight: bold;
+      min-height: 20px;
+      color: #d48a83;
+    }
+
+    #transcript {
+      margin-top: 15px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #5c4a47;
+      background: rgba(255, 255, 255, 0.7);
+      padding: 10px 18px;
+      border-radius: 15px;
+      max-width: 440px;
+      border: 1px solid rgba(232, 167, 161, 0.2);
+    }
+
+    #voicebotGif {
+      margin-top: 20px;
+      max-width: 220px;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1 / 1;
+      border-radius: 110px;
+      border: 3px solid #e8a7a1;
+      box-shadow: 0 8px 25px rgba(212, 138, 131, 0.25);
+      display: none;
+      /* hidden by default */
+    }
+
+    #audio-area {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <p>Ask about flowers, bouquets, orders, and flower care using your voice.</p>
+    <h2>🎙️ Test LiveKit Voicebot</h2>
+
+    <label>
+      Your Name:
+      <input id="name" value="guest" />
+    </label>
+    <div>
+      <button id="joinBtn">Join</button>
+      <button id="leaveBtn" disabled>Leave</button>
+    </div>
+
+    <!-- Voicebot GIF -->
+    <img id="voicebotGif" src="assets/avatar_idle.gif" alt="Voice Bot Animation">
+
+    <div id="status"></div>
+    <div id="transcript" aria-live="polite"></div>
+    <div id="audio-area"></div>
+  </div>
+
+  <!-- LiveKit JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+  <script>
+    // Backend endpoint for token generation
+    const TOKEN_API_URL = 'http://localhost:5001/getToken';
+    // LiveKit server URL
+    const LIVEKIT_WS_URL = 'wss://xyz-lhy1o1np.livekit.cloud';
+
+    const { Room, RoomEvent, Track } = window.LivekitClient;
+    let room = null;
+
+    const joinBtn = document.getElementById('joinBtn');
+    const leaveBtn = document.getElementById('leaveBtn');
+    const statusDiv = document.getElementById('status');
+    const nameInput = document.getElementById('name');
+    const audioArea = document.getElementById('audio-area');
+    const voicebotGif = document.getElementById('voicebotGif');
+    const transcript = document.getElementById('transcript');
+
+    // Helper function to update avatar states
+    function setAvatarState(state) {
+      const gifPath = `assets/avatar_${state}.gif`;
+      if (voicebotGif.src !== gifPath) {
+        voicebotGif.src = gifPath;
+        console.log(`Avatar state changed to: ${state}`);
+      }
+    }
+
+    // Set up listeners for local & remote participant speaking status
+    function setupSpeakingListeners() {
+      // Local participant (User) speaking -> Listening state
+      room.localParticipant.on('speakingStatusChanged', (speaking) => {
+        if (speaking) {
+          setAvatarState("listening");
+        } else {
+          // User finished speaking, check if the assistant is speaking
+          const isRemoteSpeaking = Array.from(room.remoteParticipants.values()).some(p => p.isSpeaking);
+          if (!isRemoteSpeaking) {
+            setAvatarState("thinking");
+          }
+        }
+      });
+
+      // Remote participants (Assistant) speaking -> Speaking state
+      const handleRemoteSpeaker = (participant) => {
+        participant.on('speakingStatusChanged', (speaking) => {
+          if (speaking) {
+            setAvatarState("speaking");
+          } else {
+            // Assistant finished speaking, return to idle if user is not speaking
+            if (!room.localParticipant.isSpeaking) {
+              setAvatarState("idle");
+            }
+          }
+        });
+      };
+
+      // Register existing remote participants
+      room.remoteParticipants.forEach(handleRemoteSpeaker);
+
+      // Register any future remote participants
+      room.on('participantConnected', handleRemoteSpeaker);
+    }
+
+    joinBtn.onclick = async () => {
+      joinBtn.disabled = true;
+      statusDiv.innerText = 'Requesting token...';
+      let name = nameInput.value.trim() || "guest";
+      let token, roomName;
+
+      try {
+        const resp = await fetch(`${TOKEN_API_URL}?name=${encodeURIComponent(name)}`);
+        const data = await resp.json();
+        token = data.token;
+        roomName = data.room;
+      } catch (e) {
+        statusDiv.innerText = "❌ Could not get token";
+        joinBtn.disabled = false;
+        return;
+      }
+
+      statusDiv.innerText = `Joining room: ${roomName} ...`;
+      room = new Room();
+
+      room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
+        if (track.kind === Track.Kind.Audio) {
+          const audioEl = track.attach();
+          // Explicitly enable playback because browsers may block remote audio autoplay.
+          audioEl.autoplay = true;
+          audioEl.muted = false;
+          audioEl.setAttribute('playsinline', 'true');
+          audioArea.appendChild(audioEl);
+          audioEl.play().catch(() => {
+            statusDiv.innerText = "🔊 Click anywhere on the page to enable assistant audio.";
+          });
+          statusDiv.innerText = "🔊 Assistant audio connected.";
+        }
+      });
+
+      room.on(RoomEvent.TranscriptionReceived, (segments) => {
+        const text = segments.map(segment => segment.text || '').join(' ').trim();
+        if (text) transcript.innerText = `Transcript: ${text}`;
+      });
+
+      room.on(RoomEvent.Disconnected, () => {
+        statusDiv.innerText = "🔴 Disconnected.";
+        leaveBtn.disabled = true;
+        joinBtn.disabled = false;
+        audioArea.innerHTML = "";
+        voicebotGif.style.display = "none"; // Hide GIF when disconnected
+      });
+
+      try {
+        await room.connect(LIVEKIT_WS_URL, token);
+        // Use the Join button's user gesture to unlock LiveKit audio playback.
+        if (typeof room.startAudio === 'function') {
+          try {
+            await room.startAudio();
+          } catch (audioError) {
+            console.warn('Browser audio autoplay is not yet unlocked:', audioError);
+          }
+        }
+        await room.localParticipant.setMicrophoneEnabled(true);
+        statusDiv.innerText = `✅ Welcome to BLOOM AI Floral Shop! You are connected to room: ${roomName}.`;
+        leaveBtn.disabled = false;
+
+        // Initialize state to idle and setup speaking status listeners
+        setAvatarState("idle");
+        setupSpeakingListeners();
+
+        voicebotGif.style.display = "block"; // Show GIF when joined
+      } catch (e) {
+        statusDiv.innerText = "❌ Could not join LiveKit room: " + e;
+        joinBtn.disabled = false;
+      }
+    };
+
+    leaveBtn.onclick = () => {
+      if (room) {
+        room.disconnect();
+        audioArea.innerHTML = "";
+      }
+      statusDiv.innerText = "👋 Left room.";
+      leaveBtn.disabled = true;
+      joinBtn.disabled = false;
+      voicebotGif.style.display = "none"; // Hide GIF when leaving
+    };
+  </script>
+</body>
+
+</html>
