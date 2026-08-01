@@ -12,8 +12,8 @@
       --rose: #c9656c;
       --rose-dark: #9d4850;
       --leaf: #517866;
-      --panel: rgba(255, 255, 255, 0.9);
-      --panel-strong: rgba(255, 255, 255, 0.96);
+      --panel: rgba(255, 255, 255, 0.78);
+      --panel-strong: rgba(255, 255, 255, 0.86);
       --line: rgba(157, 72, 80, 0.2);
     }
 
@@ -42,10 +42,8 @@
       inset: 0;
       z-index: -1;
       background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 246, 247, 0.72)),
-        rgba(255, 255, 255, 0.62);
-      backdrop-filter: blur(2px);
-      -webkit-backdrop-filter: blur(2px);
+        radial-gradient(circle at center, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.08) 55%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 246, 247, 0.12));
     }
 
     .card {
@@ -60,9 +58,9 @@
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 8px;
-      box-shadow: 0 24px 70px rgba(71, 48, 50, 0.18);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 24px 70px rgba(71, 48, 50, 0.16);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
 
     .eyebrow {
@@ -99,7 +97,7 @@
       overflow: hidden;
       border: 3px solid rgba(201, 101, 108, 0.42);
       border-radius: 50%;
-      background: var(--panel-strong);
+      background: rgba(255, 255, 255, 0.72);
       box-shadow: 0 16px 42px rgba(157, 72, 80, 0.18);
     }
 
@@ -129,7 +127,7 @@
       padding: 10px 14px;
       border: 1px solid rgba(157, 72, 80, 0.28);
       border-radius: 8px;
-      background: var(--panel-strong);
+      background: rgba(255, 255, 255, 0.8);
       color: var(--ink);
       font: inherit;
       outline: none;
@@ -195,7 +193,7 @@
       padding: 12px 14px;
       border: 1px solid rgba(81, 120, 102, 0.16);
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.68);
+      background: rgba(255, 255, 255, 0.58);
       color: var(--muted);
       font-size: 0.94rem;
       line-height: 1.5;
