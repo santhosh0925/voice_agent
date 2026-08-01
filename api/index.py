@@ -1,9 +1,5 @@
 from api import create_app
 
-# Expose the Flask app for Vercel's Python serverless runtime
+# Vercel's Python runtime serves Flask through WSGI when a top-level
+# `app` object is exported from the function file.
 app = create_app()
-
-# Vercel expects a callable named `handler` for Python functions.
-# This wrapper forwards the WSGI request to the Flask app.
-def handler(request, response):
-    return app(request.environ, start_response=response.start)

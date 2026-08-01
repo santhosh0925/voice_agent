@@ -171,8 +171,9 @@
   <script>
     // Backend endpoint for token generation
     const TOKEN_API_URL = '/api/getToken';
+    const CONFIG_API_URL = '/api/config';
     // LiveKit server URL
-    const LIVEKIT_WS_URL = 'wss://xyz-lhy1o1np.livekit.cloud';
+    let LIVEKIT_WS_URL = null;
 
     const { Room, RoomEvent, Track } = window.LivekitClient;
     let room = null;
@@ -237,12 +238,23 @@
       let token, roomName;
 
       try {
+        if (!LIVEKIT_WS_URL) {
+          const configResp = await fetch(CONFIG_API_URL);
+          const config = await configResp.json();
+          if (!configResp.ok || !config.livekitUrl) {
+            throw new Error(config.error || 'LiveKit URL is not configured');
+          }
+          LIVEKIT_WS_URL = config.livekitUrl;
+        }
         const resp = await fetch(`${TOKEN_API_URL}?name=${encodeURIComponent(name)}`);
         const data = await resp.json();
+        if (!resp.ok) {
+          throw new Error(data.error || 'Token request failed');
+        }
         token = data.token;
         roomName = data.room;
       } catch (e) {
-        statusDiv.innerText = "❌ Could not get token";
+        statusDiv.innerText = "❌ Could not prepare LiveKit connection: " + e.message;
         joinBtn.disabled = false;
         return;
       }

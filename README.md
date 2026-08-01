@@ -36,6 +36,7 @@ Use Python 3.10 or newer:
 
 ```bash
 pip install -r requirements.txt
+pip install -r requirements-agent.txt
 ```
 
 Configure the existing project credentials in `.env`:
@@ -71,6 +72,28 @@ python -m http.server 8080
 ```
 
 Open `http://localhost:8080/index.html`, allow microphone access, and click **Join**. The assistant welcomes the customer with: “Welcome to BLOOM AI Floral Shop! How can I help you today?”
+
+## Vercel deployment
+
+This repository is configured for Vercel to host:
+
+- `public/index.html` and `public/assets/*`
+- the Flask token endpoint at `/api/getToken`
+- a health endpoint at `/api/health`
+
+Set these environment variables in the Vercel project settings:
+
+```env
+LIVEKIT_URL=wss://your-livekit-url.livekit.cloud
+LIVEKIT_API_KEY=your-livekit-api-key
+LIVEKIT_API_SECRET=your-livekit-api-secret
+```
+
+Vercel uses the lightweight root `requirements.txt` for the serverless token API. The full LiveKit voice agent and local RAG dependencies live in `requirements-agent.txt` because the agent is a long-running worker and should run separately from Vercel, for example locally, on a VM, or on a worker/container host:
+
+```bash
+python agent.py dev
+```
 
 ## Sample voice commands
 
