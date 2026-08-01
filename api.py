@@ -7,28 +7,31 @@ from dotenv import load_dotenv
 from livekit.api import AccessToken, VideoGrants
 
 load_dotenv()
-app = Flask(__name__)
-CORS(app, resources={r"/*":{"origin":"*"}})
-
 
 def generate_room():
     return "room-"+ str(uuid.uuid4())[:8]
 
-@app.route("/getToken")
-def get_token():
-    name = request.args.get("name","guest")
-    room = request.args.get("room", generate_room())
-    api_key = os.environ["LIVEKIT_API_KEY"]
-    api_secret = os.environ['LIVEKIT_API_SECRET']
+def create_app():
+    app = Flask(__name__)
+    CORS(app, resources={r"/*":{"origin":"*"}})
 
-    grants = VideoGrants(room_join=True, room=room)
-    token = AccessToken(api_key, api_secret).with_identity(name).with_grants(grants)
-    return jsonify({
-        "token": token.to_jwt(),
-        "room": room,
-        "identity": name
-    })
+    @app.route("/getToken")
+    def get_token():
+        name = request.args.get("name","guest")
+        room = request.args.get("room", generate_room())
+        api_key = os.environ["LIVEKIT_API_KEY"]
+        api_secret = os.environ['LIVEKIT_API_SECRET']
+
+        grants = VideoGrants(room_join=True, room=room)
+        token = AccessToken(api_key, api_secret).with_identity(name).with_grants(grants)
+        return jsonify({
+            "token": token.to_jwt(),
+            "room": room,
+            "identity": name
+        })
+
+    return app
 
 if __name__ == "__main__":
-    # Keep one stable token-server process when launched with `python api.py`.
-    app.run(host="0.0.0.0", port=5001, debug=False)
+    # Run locally for development
+    create_app().run(host="0.0.0.0", port=5001, debug=False)
